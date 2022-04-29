@@ -1,3 +1,5 @@
+//! A history of account deposits and withdrawals to facilitate disputes and chargebacks.
+//!
 use super::{Money, TxId};
 use std::collections::HashMap;
 

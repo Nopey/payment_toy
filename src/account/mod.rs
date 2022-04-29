@@ -1,3 +1,4 @@
+///! Accounts and operations that can be performed on them
 mod transaction;
 mod tx_history;
 #[cfg(test)]
@@ -8,7 +9,10 @@ use serde::{ser::SerializeStruct, Deserialize, Serialize};
 pub use transaction::{Id as TxId, Transaction};
 pub use tx_history::TxHistory;
 
+/// `Client` is an [`Account`]'s unique identifier
 pub type Client = u16;
+
+/// `Money` is a numeric quantity with four decimal places.
 #[derive(
     Default,
     Clone,
@@ -38,6 +42,7 @@ impl Money {
     }
 }
 
+/// `Account` is one's current balance and standing with the bank.
 pub struct Account {
     client: Client,
     available_funds: Money,
@@ -149,6 +154,7 @@ impl Serialize for Account {
     }
 }
 
+/// An error that occured while processing a transaction
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]//, thiserror::Error)]
 pub enum Error {
     // #[error("Transaction already exists with id {0}")]

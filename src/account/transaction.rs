@@ -1,3 +1,7 @@
+//! `Transaction` represents an operation on an [`Account`](super::Account),
+//! that is deserializable from CSV and applied in
+//! [`Account::process_transaction`](super::Account::process_transaction)
+//!
 use super::{Client, Money};
 use rust_decimal::prelude::ToPrimitive;
 use serde::{de, Deserialize};
