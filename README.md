@@ -20,10 +20,10 @@ transactions, and so such disputes are ignored.
 silently aborting the transaction; the comments above each return
 statement  indicate the nature of each error.
 
-`main` panics whenever the arguments are invalid, unable to access the
-input file fails, and parsing fails.
+`main` panics whenever the arguments are invalid, the input file is
+inaccessable, or the parsing fails.
 
-Using some error logging/tracing would make this more realistic, but is 
+Using some error logging/tracing would make this more realistic, but is
 left undone.
 
 The fixed point arithmatic will panic on overflow, even in release
