@@ -1,0 +1,17 @@
+client, tx, type, amount
+612,105,deposit,1000000000000000000012345.6789
+123,101,deposit,100
+251,103,withdrawal,555
+123,104,withdrawal,90
+123,101,dispute,
+123,101,chargeback
+612,201,withdrawal,100
+612,202,withdrawal,100
+612,203,withdrawal,100
+612,204,withdrawal,100
+612,205,withdrawal,100
+612,206,withdrawal,100
+612,207,withdrawal,100
+612,208,withdrawal,100
+612,209,withdrawal,100
+612,210,withdrawal,100
