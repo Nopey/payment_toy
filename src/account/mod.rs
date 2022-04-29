@@ -60,7 +60,7 @@ impl Account {
     pub fn total(&self) -> Money {
         self.available_funds + self.held_funds
     }
-    pub fn process_transaction(&mut self, tx: &Transaction, tx_history: &mut TxHistory) {
+    pub fn process_transaction(&mut self, tx: &Transaction, tx_history: &mut TxHistory) -> Result<(), Error>{
         use transaction::Action::*;
         match tx.action() {
             Deposit { amount } => {
@@ -68,24 +68,21 @@ impl Account {
                     .record_transaction(tx.id(), amount, tx_history::CompletedTxKind::Deposit)
                     .is_err()
                 {
-                    // silently ignore duplicate transactions
-                    return;
+                    return Err(Error::DuplicateTransaction(tx.id()));
                 };
                 self.available_funds += amount;
             }
             Withdrawal { amount } => {
                 let new_available = self.available_funds - amount;
                 if new_available < Money::ZERO {
-                    // silently fail due to insufficient funds
-                    return;
+                    return Err(Error::InsufficientFundsForWithdrawal(tx.id()));
                 }
                 // note: allows withdrawals from locked/frozen accounts
                 if tx_history
                     .record_transaction(tx.id(), amount, tx_history::CompletedTxKind::Withdrawal)
                     .is_err()
                 {
-                    // silently ignore duplicate transactions
-                    return;
+                    return Err(Error::DuplicateTransaction(tx.id()));
                 };
                 self.available_funds = new_available;
             }
@@ -93,13 +90,12 @@ impl Account {
                 let past_tx = if let Some(past) = tx_history.past_transaction(tx.id()) {
                     past
                 } else {
-                    // ignore disputes with invalid tx references
-                    return;
+                    return Err(Error::UnknownTxReference(tx.id()));
                 };
                 use tx_history::CompletedTxKind::*;
                 match past_tx.kind {
                     // disputing withdrawals is unsupported.. ignore
-                    Withdrawal => return,
+                    Withdrawal => return Err(Error::WithdrawalsAreIndisputable(tx.id())),
                     Deposit => (),
                 }
                 // this may lead to negative available_funds
@@ -112,12 +108,10 @@ impl Account {
                 let past_tx = if let Some(past) = tx_history.past_transaction(tx.id()) {
                     past
                 } else {
-                    // ignore resolves with invalid tx references
-                    return;
+                    return Err(Error::UnknownTxReference(tx.id()));
                 };
                 if !past_tx.disputed {
-                    // ignore resolves of transactions that aren't disputed
-                    return;
+                    return Err(Error::CantResolveIndisputedTx(tx.id()));
                 }
                 past_tx.disputed = false;
                 self.held_funds -= past_tx.amount;
@@ -127,12 +121,10 @@ impl Account {
                 let past_tx = if let Some(past) = tx_history.past_transaction(tx.id()) {
                     past
                 } else {
-                    // ignore chargebacks with invalid tx references
-                    return;
+                    return Err(Error::UnknownTxReference(tx.id()));
                 };
                 if !past_tx.disputed {
-                    // ignore chargebacks of transactions that aren't disputed
-                    return;
+                    return Err(Error::CantChargebackIndisputedTx(tx.id()));
                 }
                 self.held_funds -= past_tx.amount;
                 self.locked = true;
@@ -140,6 +132,7 @@ impl Account {
                 tx_history.erase_transaction(tx.id()).unwrap();
             }
         }
+        Ok(())
     }
 }
 
@@ -161,3 +154,18 @@ impl Serialize for Account {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]//, thiserror::Error)]
+pub enum Error {
+    // #[error("Transaction already exists with id {0}")]
+    DuplicateTransaction(TxId),
+    // #[error("Insufficient funds for withdrawal in tx {0}")]
+    InsufficientFundsForWithdrawal(TxId),
+    // #[error("Unknown transaction {0} referenced")]
+    UnknownTxReference(TxId),
+    // #[error("Disputing withdrawals is unsupported. tx: {0}")]
+    WithdrawalsAreIndisputable(TxId),
+    // #[error("Resolve attempted on indisupted transaction {0}")]
+    CantResolveIndisputedTx(TxId),
+    // #[error("Chargeback attempted on indisupted transaction {0}")]
+    CantChargebackIndisputedTx(TxId),
+}

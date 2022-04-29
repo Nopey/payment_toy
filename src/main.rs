@@ -32,7 +32,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let account = accounts
             .entry(client)
             .or_insert_with(|| Account::new(client));
-        account.process_transaction(&tx, &mut tx_history);
+        // ignore errors from process_transaction
+        account.process_transaction(&tx, &mut tx_history).ok();
     }
 
     // generate report

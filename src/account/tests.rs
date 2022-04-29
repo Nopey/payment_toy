@@ -12,8 +12,9 @@ fn process_tx_skips_dup_deposits() {
     let tx_id = 101;
     let tx = Transaction::new(Action::new_deposit(deposit_amount), client, tx_id);
     let mut account = Account::new(client);
+    assert_eq!(Ok(()), account.process_transaction(&tx, &mut tx_history));
     for _ in 0..10 {
-        account.process_transaction(&tx, &mut tx_history)
+        assert_eq!(Err(Error::DuplicateTransaction(tx_id)), account.process_transaction(&tx, &mut tx_history));
     }
     assert!(account.available_funds == deposit_amount);
     assert!(account.held_funds == Money::ZERO);
@@ -34,7 +35,7 @@ fn process_tx_allows_tx_in_locked_accounts() {
 
     // process one deposit to put a balance in the account
     let deposit = Transaction::new(Action::new_deposit(deposit_amount), client, deposit_id);
-    account.process_transaction(&deposit, &mut tx_history);
+    assert_eq!(Ok(()), account.process_transaction(&deposit, &mut tx_history));
 
     // process a withdrawal
     let withdrawal = Transaction::new(
@@ -42,7 +43,7 @@ fn process_tx_allows_tx_in_locked_accounts() {
         client,
         withdrawal_id,
     );
-    account.process_transaction(&withdrawal, &mut tx_history);
+    assert_eq!(Ok(()), account.process_transaction(&withdrawal, &mut tx_history));
 
     assert_eq!(account.available_funds, (deposit_amount - withdrawal_amount));
     assert!(account.held_funds == Money::ZERO);
@@ -60,7 +61,7 @@ fn process_tx_skips_dup_withdrawals() {
     
     // process one deposit to put a balance in the account
     let deposit = Transaction::new(Action::new_deposit(deposit_amount), client, deposit_id);
-    account.process_transaction(&deposit, &mut tx_history);
+    assert_eq!(Ok(()), account.process_transaction(&deposit, &mut tx_history));
 
     // process ten of the same withdrawal
     let withdrawal = Transaction::new(
@@ -68,8 +69,9 @@ fn process_tx_skips_dup_withdrawals() {
         client,
         withdrawal_id,
     );
+    assert_eq!(Ok(()), account.process_transaction(&withdrawal, &mut tx_history));
     for _ in 0..10 {
-        account.process_transaction(&withdrawal, &mut tx_history);
+        assert_eq!(Err(Error::DuplicateTransaction(withdrawal_id)), account.process_transaction(&withdrawal, &mut tx_history));
     }
     assert_eq!(account.available_funds, (deposit_amount - withdrawal_amount));
     assert!(account.held_funds == Money::ZERO);

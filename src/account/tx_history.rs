@@ -10,11 +10,11 @@ impl TxHistory {
         id: TxId,
         amount: Money,
         kind: CompletedTxKind,
-    ) -> Result<(), Error> {
+    ) -> Result<(), ()> {
         let entry = self.0.entry(id);
         use std::collections::hash_map::Entry::*;
         match entry {
-            Occupied(_) => Err(Error::TransactionAlreadyExists(id)),
+            Occupied(_) => Err(()),
             Vacant(v) => {
                 v.insert(CompletedTx {
                     kind,
@@ -44,10 +44,4 @@ pub(super) struct CompletedTx {
 pub(super) enum CompletedTxKind {
     Withdrawal,
     Deposit,
-}
-
-#[derive(Debug)] //, thiserror::Error)]
-pub enum Error {
-    // #[error("Transaction already exists with id {0}")]
-    TransactionAlreadyExists(TxId),
 }
