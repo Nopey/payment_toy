@@ -1,9 +1,10 @@
 use super::{Client, Money};
+use rust_decimal::prelude::ToPrimitive;
 use serde::{de, Deserialize};
 
 pub type Id = u32;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Transaction {
     action: Action,
     client: Client,
@@ -11,6 +12,10 @@ pub struct Transaction {
 }
 
 impl Transaction {
+    #[allow(unused)]
+    pub fn new(action: Action, client: Client, id: Id) -> Self {
+        Self { action, client, id }
+    }
     pub fn action(&self) -> Action {
         self.action
     }
@@ -56,8 +61,20 @@ impl<'de> Deserialize<'de> for Transaction {
             id,
         } = CsvTransaction::deserialize(deserializer)?;
         // and then un-flatten it
-        let mut take_amount =
-            || std::mem::take(&mut amount).ok_or_else(|| de::Error::missing_field("amount"));
+        let mut take_amount = || {
+            std::mem::take(&mut amount)
+                .ok_or_else(|| de::Error::missing_field("amount"))
+                .and_then(|money| {
+                    if money.0.is_sign_negative() {
+                        Err(de::Error::invalid_value(
+                            serde::de::Unexpected::Float(money.0.to_f64().unwrap_or_default()),
+                            &"a positive amount of moneys",
+                        ))
+                    } else {
+                        Ok(money)
+                    }
+                })
+        };
         let action = match action_type {
             ActionType::Deposit => Action::Deposit {
                 amount: take_amount()?,
@@ -78,11 +95,32 @@ impl<'de> Deserialize<'de> for Transaction {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Action {
     Deposit { amount: Money },
     Withdrawal { amount: Money },
     Dispute,
     Resolve,
     Chargeback,
+}
+
+#[allow(unused)]
+impl Action {
+    pub fn new_deposit(amount: Money) -> Self {
+        assert!(amount.0.is_sign_positive());
+        Action::Deposit { amount }
+    }
+    pub fn new_withdrawal(amount: Money) -> Self {
+        assert!(amount.0.is_sign_positive());
+        Action::Withdrawal { amount }
+    }
+    pub fn new_dispute() -> Self {
+        Action::Dispute
+    }
+    pub fn new_resolve() -> Self {
+        Action::Resolve
+    }
+    pub fn new_chargeback() -> Self {
+        Action::Chargeback
+    }
 }

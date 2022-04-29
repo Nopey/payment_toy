@@ -1,5 +1,7 @@
 mod transaction;
 mod tx_history;
+#[cfg(test)]
+mod tests;
 
 use derive_more::{Add, AddAssign, Display, Sub, SubAssign};
 use serde::{ser::SerializeStruct, Deserialize, Serialize};
@@ -20,7 +22,9 @@ pub type Client = u16;
     Sub,
     SubAssign,
     PartialEq,
+    Eq,
     PartialOrd,
+    Ord,
     Serialize,
     Deserialize,
 )]
@@ -29,6 +33,11 @@ pub struct Money(#[serde(with = "rust_decimal::serde::str")] rust_decimal::Decim
 
 impl Money {
     pub const ZERO: Money = Money(rust_decimal::Decimal::ZERO);
+
+    #[cfg(test)]
+    fn from_i128(num: i128) -> Self {
+        Money(rust_decimal::Decimal::from_i128_with_scale(num, 4))
+    }
 }
 
 pub struct Account {
@@ -151,3 +160,4 @@ impl Serialize for Account {
         state.end()
     }
 }
+
