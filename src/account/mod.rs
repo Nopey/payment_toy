@@ -9,8 +9,6 @@ pub use transaction::{Id as TxId, Transaction};
 pub use tx_history::TxHistory;
 
 pub type Client = u16;
-//pub type Money = rust_decimal::Decimal;
-//pub type Money = f64;
 #[derive(
     Default,
     Clone,
@@ -143,9 +141,6 @@ impl Serialize for Account {
     {
         let mut state = serializer.serialize_struct("Color", 3)?;
         state.serialize_field("client", &self.client)?;
-        //state.serialize_field("available",&round_to_four_decimals(self.available_funds))?;
-        //state.serialize_field("held",&round_to_four_decimals(self.held_funds))?;
-        //state.serialize_field("total",&round_to_four_decimals(self.total()))?;
         state.serialize_field("available", &self.available_funds)?;
         state.serialize_field("held", &self.held_funds)?;
         state.serialize_field("total", &self.total())?;
