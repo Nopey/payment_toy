@@ -21,21 +21,38 @@ fn process_tx_skips_dup_deposits() {
 }
 
 #[test]
-fn process_tx_allows_tx_in_locked_accounts() {
+fn process_tx_denies_deposit_in_locked_account() {
     let mut tx_history = tx_history::TxHistory::default();
-    let deposit_amount = Money::from_i128(123000_0000);
-    let withdrawal_amount = Money::from_i128(123_0000);
+    let deposit_amount = Money::from_i128(123_0000);
     let client = 725;
-    let deposit_id: TxId = 101;
-    let withdrawal_id: TxId = 102;
+    let deposit_id: TxId = 102;
     let mut account = Account::new(client);
 
     // Lock the account
     account.locked = true;
 
-    // process one deposit to put a balance in the account
-    let deposit = Transaction::new(Action::new_deposit(deposit_amount), client, deposit_id);
-    assert_eq!(Ok(()), account.process_transaction(&deposit, &mut tx_history));
+    // process a withdrawal
+    let withdrawal = Transaction::new(
+        Action::new_deposit(deposit_amount),
+        client,
+        deposit_id,
+    );
+    assert_eq!(Err(Error::AccountLockedFundsFrozen(deposit_id)), account.process_transaction(&withdrawal, &mut tx_history));
+
+    assert_eq!(account.available_funds, Money::ZERO);
+    assert!(account.held_funds == Money::ZERO);
+}
+
+#[test]
+fn process_tx_denies_withdrawal_in_locked_account() {
+    let mut tx_history = tx_history::TxHistory::default();
+    let withdrawal_amount = Money::from_i128(123_0000);
+    let client = 725;
+    let withdrawal_id: TxId = 102;
+    let mut account = Account::new(client);
+
+    // Lock the account
+    account.locked = true;
 
     // process a withdrawal
     let withdrawal = Transaction::new(
@@ -43,11 +60,76 @@ fn process_tx_allows_tx_in_locked_accounts() {
         client,
         withdrawal_id,
     );
-    assert_eq!(Ok(()), account.process_transaction(&withdrawal, &mut tx_history));
+    assert_eq!(Err(Error::AccountLockedFundsFrozen(withdrawal_id)), account.process_transaction(&withdrawal, &mut tx_history));
 
-    assert_eq!(account.available_funds, (deposit_amount - withdrawal_amount));
+    assert_eq!(account.available_funds, Money::ZERO);
     assert!(account.held_funds == Money::ZERO);
 }
+
+#[test]
+fn process_tx_allows_dispute_and_chargeback_in_locked_account() {
+    let mut tx_history = tx_history::TxHistory::default();
+    let deposit_amount = Money::from_i128(123_0000);
+    let client = 725;
+    let deposit_id: TxId = 102;
+    let mut account = Account::new(client);
+
+    // process a deposit, that will be charged back soon
+    let deposit = Transaction::new(
+        Action::new_deposit(deposit_amount),
+        client,
+        deposit_id,
+    );
+    assert_eq!(Ok(()), account.process_transaction(&deposit, &mut tx_history));
+
+    // Lock the account
+    account.locked = true;
+
+    let dispute = Transaction::new(Action::new_dispute(), client, deposit_id);
+    assert_eq!(Ok(()), account.process_transaction(&dispute, &mut tx_history));
+
+    let chargeback = Transaction::new(Action::new_chargeback(), client, deposit_id);
+    assert_eq!(Ok(()), account.process_transaction(&chargeback, &mut tx_history));
+
+    // funds should now be removed
+    assert_eq!(account.available_funds, Money::ZERO);
+    assert!(account.held_funds == Money::ZERO);
+    assert!(account.locked);
+}
+
+
+
+#[test]
+fn process_tx_allows_dispute_and_resolve_in_locked_account() {
+    let mut tx_history = tx_history::TxHistory::default();
+    let deposit_amount = Money::from_i128(123_0000);
+    let client = 725;
+    let deposit_id: TxId = 102;
+    let mut account = Account::new(client);
+
+    // process a deposit, that will be charged back soon
+    let deposit = Transaction::new(
+        Action::new_deposit(deposit_amount),
+        client,
+        deposit_id,
+    );
+    assert_eq!(Ok(()), account.process_transaction(&deposit, &mut tx_history));
+
+    // Lock the account
+    account.locked = true;
+
+    let dispute = Transaction::new(Action::new_dispute(), client, deposit_id);
+    assert_eq!(Ok(()), account.process_transaction(&dispute, &mut tx_history));
+
+    let resolve = Transaction::new(Action::new_resolve(), client, deposit_id);
+    assert_eq!(Ok(()), account.process_transaction(&resolve, &mut tx_history));
+
+    // funds should be off hold
+    assert_eq!(account.available_funds, deposit_amount);
+    assert!(account.held_funds == Money::ZERO);
+    assert!(account.locked);
+}
+
 
 #[test]
 fn process_tx_skips_dup_withdrawals() {

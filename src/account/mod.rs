@@ -67,6 +67,9 @@ impl Account {
         use transaction::Action::*;
         match tx.action() {
             Deposit { amount } => {
+                if self.locked {
+                    return Err(Error::AccountLockedFundsFrozen(tx.id()));
+                }
                 if tx_history
                     .record_transaction(tx.id(), amount, tx_history::CompletedTxKind::Deposit)
                     .is_err()
@@ -76,6 +79,9 @@ impl Account {
                 self.available_funds += amount;
             }
             Withdrawal { amount } => {
+                if self.locked {
+                    return Err(Error::AccountLockedFundsFrozen(tx.id()));
+                }
                 let new_available = self.available_funds - amount;
                 if new_available < Money::ZERO {
                     return Err(Error::InsufficientFundsForWithdrawal(tx.id()));
@@ -159,6 +165,8 @@ impl Serialize for Account {
 pub enum Error {
     // #[error("Transaction already exists with id {0}")]
     DuplicateTransaction(TxId),
+    // #[error("Transaction {0} attempted to modify funds in locked account")]
+    AccountLockedFundsFrozen(TxId),
     // #[error("Insufficient funds for withdrawal in tx {0}")]
     InsufficientFundsForWithdrawal(TxId),
     // #[error("Unknown transaction {0} referenced")]

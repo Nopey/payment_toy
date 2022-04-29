@@ -12,16 +12,13 @@ arithmatic's correct behavior when compared to `f64`.
 
 ## Withdrawal Disputes
 I'm unsure how a system might handle disputes of withdrawal
-transactions, and so such disputes are ignored.
+transactions, and so such disputes are reported as errorneous.
 
 
 ## Error handling / UX
-`Account::process_transaction` swallows many errors, returning and
-silently aborting the transaction; the comments above each return
-statement  indicate the nature of each error.
-
 `main` panics whenever the arguments are invalid, the input file is
-inaccessable, or the parsing fails.
+inaccessable, or the parsing fails; all errors from process_transaction
+are ignored, `main` simply moves on to the next record.
 
 Using some error logging/tracing would make this more realistic, but is
 left undone.
@@ -33,8 +30,8 @@ presumably unrealistic situation.
 
 Since only withdrawal and deposit transactions use the `amount` column,
 constructing a `Transaction` with or without an amount of moneys
-inappropriately is impossible, and the deserializer for `Transaction`
-ensures records 
+inappropriately is impossible, and the deserializer and constructors
+for `Transaction` prevents negative amounts.
 
 
 ### Notably Absent Optimizations
