@@ -86,7 +86,6 @@ impl Account {
                 if new_available < Money::ZERO {
                     return Err(Error::InsufficientFundsForWithdrawal(tx.id()));
                 }
-                // note: allows withdrawals from locked/frozen accounts
                 if tx_history
                     .record_transaction(tx.id(), amount, tx_history::CompletedTxKind::Withdrawal)
                     .is_err()
@@ -106,6 +105,9 @@ impl Account {
                     // disputing withdrawals is unsupported.. ignore
                     Withdrawal => return Err(Error::WithdrawalsAreIndisputable(tx.id())),
                     Deposit => (),
+                }
+                if past_tx.disputed {
+                    return Err(Error::DuplicateDispute(tx.id()));
                 }
                 // this may lead to negative available_funds
                 let new_available = self.available_funds - past_tx.amount;
@@ -138,7 +140,9 @@ impl Account {
                 self.held_funds -= past_tx.amount;
                 self.locked = true;
                 // unwrap won't panic because we already know this entry exists.
-                tx_history.erase_transaction(tx.id()).unwrap();
+
+                // zeroing the deposit's amount prevents repeat chargebacks
+                past_tx.amount = Money::ZERO;
             }
         }
         Ok(())
@@ -177,4 +181,6 @@ pub enum Error {
     CantResolveIndisputedTx(TxId),
     // #[error("Chargeback attempted on indisupted transaction {0}")]
     CantChargebackIndisputedTx(TxId),
+    // #[error("Dispute attempted on transaction {0} that is already in dispute")]
+    DuplicateDispute(TxId),
 }

@@ -31,10 +31,6 @@ impl TxHistory {
     pub(super) fn past_transaction(&mut self, id: TxId) -> Option<&mut CompletedTx> {
         self.0.get_mut(&id)
     }
-
-    pub(super) fn erase_transaction(&mut self, id: TxId) -> Option<CompletedTx> {
-        self.0.remove(&id)
-    }
 }
 
 pub(super) struct CompletedTx {

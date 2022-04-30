@@ -303,3 +303,69 @@ fn account_total_negative_available() {
     account.held_funds = Money::from_i128(360_0000);
     assert!(account.total() == Money::from_i128(240_0000))
 }
+
+#[test]
+fn duplicate_disputes_are_rejected()
+{
+
+    let mut tx_history = tx_history::TxHistory::default();
+    let deposit_amount = Money::from_i128(123000_0000);
+    let client = 725;
+    let deposit_id: TxId = 101;
+    let mut account = Account::new(client);
+
+    // process one deposit for us to dispute
+    let deposit = Transaction::new(Action::new_deposit(deposit_amount), client, deposit_id);
+    assert_eq!(Ok(()), account.process_transaction(&deposit, &mut tx_history));
+
+    let dispute = Transaction::new(
+        Action::new_dispute(),
+        client,
+        deposit_id,
+    );
+
+    // first dispute goes through no problem, puts hold on funds
+    assert_eq!(Ok(()), account.process_transaction(&dispute, &mut tx_history));
+
+
+    // all funds are now on hold
+    assert_eq!(account.available_funds, Money::ZERO);
+    assert_eq!(account.held_funds, deposit_amount);
+
+    for _ in 0..10 {
+        // further dispute fails
+        assert_eq!(Err(Error::DuplicateDispute(deposit_id)), account.process_transaction(&dispute, &mut tx_history));
+
+        // no change
+        assert_eq!(account.available_funds, Money::ZERO);
+        assert_eq!(account.held_funds, deposit_amount);
+    }
+}
+
+#[test]
+fn chargebacks_dont_free_txid()
+{
+
+    let mut tx_history = tx_history::TxHistory::default();
+    let deposit_amount = Money::from_i128(123000_0000);
+    let client = 725;
+    let deposit_id: TxId = 101;
+    let mut account = Account::new(client);
+
+    // deposit that we'll chargeback, freezing `client`'s account
+    let deposit = Transaction::new(Action::new_deposit(deposit_amount), client, deposit_id);
+    assert_eq!(Ok(()), account.process_transaction(&deposit, &mut tx_history));
+
+    // quickly charge it back
+    let dispute = Transaction::new(Action::new_dispute(), client, deposit_id);
+    assert_eq!(Ok(()), account.process_transaction(&dispute, &mut tx_history));
+    let chargeback = Transaction::new(Action::new_chargeback(), client, deposit_id);
+    assert_eq!(Ok(()), account.process_transaction(&chargeback, &mut tx_history));
+
+    // transaction id is still occupied, a second deposit cannot reuse that id
+    let second_client = 2525;
+    let mut second_account = Account::new(second_client);
+    let second_deposit_amount = Money::from_i128(444_0000);
+    let second_deposit = Transaction::new(Action::new_deposit(second_deposit_amount), second_client, deposit_id);
+    assert_eq!(Err(Error::DuplicateTransaction(deposit_id)), second_account.process_transaction(&second_deposit, &mut tx_history));
+}
