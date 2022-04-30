@@ -1,8 +1,8 @@
+#[cfg(test)]
+mod tests;
 ///! Accounts and operations that can be performed on them
 mod transaction;
 mod tx_history;
-#[cfg(test)]
-mod tests;
 
 use derive_more::{Add, AddAssign, Display, Sub, SubAssign};
 use serde::{ser::SerializeStruct, Deserialize, Serialize};
@@ -63,7 +63,11 @@ impl Account {
     pub fn total(&self) -> Money {
         self.available_funds + self.held_funds
     }
-    pub fn process_transaction(&mut self, tx: &Transaction, tx_history: &mut TxHistory) -> Result<(), Error>{
+    pub fn process_transaction(
+        &mut self,
+        tx: &Transaction,
+        tx_history: &mut TxHistory,
+    ) -> Result<(), Error> {
         use transaction::Action::*;
         match tx.action() {
             Deposit { amount } => {
@@ -165,7 +169,7 @@ impl Serialize for Account {
 }
 
 /// An error that occured while processing a transaction
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]//, thiserror::Error)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)] //, thiserror::Error)]
 pub enum Error {
     // #[error("Transaction already exists with id {0}")]
     DuplicateTransaction(TxId),
