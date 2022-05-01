@@ -3,7 +3,6 @@
 //! [`Account::process_transaction`](super::Account::process_transaction)
 //!
 use super::{Client, Money};
-use rust_decimal::prelude::ToPrimitive;
 use serde::{de, Deserialize};
 
 pub type Id = u32;
@@ -69,9 +68,9 @@ impl<'de> Deserialize<'de> for Transaction {
             std::mem::take(&mut amount)
                 .ok_or_else(|| de::Error::missing_field("amount"))
                 .and_then(|money| {
-                    if money.0.is_sign_negative() {
+                    if money.is_negative() {
                         Err(de::Error::invalid_value(
-                            serde::de::Unexpected::Float(money.0.to_f64().unwrap_or_default()),
+                            serde::de::Unexpected::Float(money.to_f64()),
                             &"a positive amount of moneys",
                         ))
                     } else {
@@ -111,11 +110,11 @@ pub enum Action {
 #[allow(unused)]
 impl Action {
     pub fn new_deposit(amount: Money) -> Self {
-        assert!(amount.0.is_sign_positive());
+        assert!(!amount.is_negative());
         Action::Deposit { amount }
     }
     pub fn new_withdrawal(amount: Money) -> Self {
-        assert!(amount.0.is_sign_positive());
+        assert!(!amount.is_negative());
         Action::Withdrawal { amount }
     }
     pub fn new_dispute() -> Self {

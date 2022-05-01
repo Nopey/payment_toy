@@ -1,17 +1,19 @@
+mod money;
 #[cfg(test)]
 mod tests;
 ///! Accounts and operations that can be performed on them
 mod transaction;
 mod tx_history;
 
-use derive_more::{Add, AddAssign, Display, Sub, SubAssign};
-use serde::{ser::SerializeStruct, Deserialize, Serialize};
+pub use money::Money;
+use serde::{ser::SerializeStruct, Serialize};
 pub use transaction::{Id as TxId, Transaction};
 pub use tx_history::TxHistory;
 
 /// `Client` is an [`Account`]'s unique identifier
 pub type Client = u16;
 
+/*
 /// `Money` is a numeric quantity with four decimal places.
 #[derive(
     Default,
@@ -30,6 +32,7 @@ pub type Client = u16;
     Serialize,
     Deserialize,
 )]
+
 #[serde(transparent)]
 pub struct Money(#[serde(with = "rust_decimal::serde::str")] rust_decimal::Decimal);
 
@@ -40,7 +43,7 @@ impl Money {
     fn from_i128(num: i128) -> Self {
         Money(rust_decimal::Decimal::from_i128_with_scale(num, 4))
     }
-}
+}*/
 
 /// `Account` is one's current balance and standing with the bank.
 pub struct Account {

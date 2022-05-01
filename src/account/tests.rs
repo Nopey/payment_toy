@@ -7,7 +7,7 @@ use super::{transaction::Action, *};
 #[test]
 fn process_tx_skips_dup_deposits() {
     let mut tx_history = tx_history::TxHistory::default();
-    let deposit_amount = Money::from_i128(123_0000);
+    let deposit_amount = Money::from_i64(123_0000);
     let client = 725;
     let tx_id = 101;
     let tx = Transaction::new(Action::new_deposit(deposit_amount), client, tx_id);
@@ -26,7 +26,7 @@ fn process_tx_skips_dup_deposits() {
 #[test]
 fn process_tx_denies_deposit_in_locked_account() {
     let mut tx_history = tx_history::TxHistory::default();
-    let deposit_amount = Money::from_i128(123_0000);
+    let deposit_amount = Money::from_i64(123_0000);
     let client = 725;
     let deposit_id: TxId = 102;
     let mut account = Account::new(client);
@@ -48,7 +48,7 @@ fn process_tx_denies_deposit_in_locked_account() {
 #[test]
 fn process_tx_denies_withdrawal_in_locked_account() {
     let mut tx_history = tx_history::TxHistory::default();
-    let withdrawal_amount = Money::from_i128(123_0000);
+    let withdrawal_amount = Money::from_i64(123_0000);
     let client = 725;
     let withdrawal_id: TxId = 102;
     let mut account = Account::new(client);
@@ -74,7 +74,7 @@ fn process_tx_denies_withdrawal_in_locked_account() {
 #[test]
 fn process_tx_allows_dispute_and_chargeback_in_locked_account() {
     let mut tx_history = tx_history::TxHistory::default();
-    let deposit_amount = Money::from_i128(123_0000);
+    let deposit_amount = Money::from_i64(123_0000);
     let client = 725;
     let deposit_id: TxId = 102;
     let mut account = Account::new(client);
@@ -110,7 +110,7 @@ fn process_tx_allows_dispute_and_chargeback_in_locked_account() {
 #[test]
 fn process_tx_allows_dispute_and_resolve_in_locked_account() {
     let mut tx_history = tx_history::TxHistory::default();
-    let deposit_amount = Money::from_i128(123_0000);
+    let deposit_amount = Money::from_i64(123_0000);
     let client = 725;
     let deposit_id: TxId = 102;
     let mut account = Account::new(client);
@@ -146,8 +146,8 @@ fn process_tx_allows_dispute_and_resolve_in_locked_account() {
 #[test]
 fn process_tx_skips_dup_withdrawals() {
     let mut tx_history = tx_history::TxHistory::default();
-    let deposit_amount = Money::from_i128(123000_0000);
-    let withdrawal_amount = Money::from_i128(123_0000);
+    let deposit_amount = Money::from_i64(123000_0000);
+    let withdrawal_amount = Money::from_i64(123_0000);
     let client = 725;
     let deposit_id: TxId = 101;
     let withdrawal_id: TxId = 102;
@@ -313,25 +313,25 @@ fn withdrawal_with_amount_accepted() {
 fn account_total_simple_addition() {
     let client = 266;
     let mut account = Account::new(client);
-    account.available_funds = Money::from_i128(120_0000);
-    account.held_funds = Money::from_i128(3_4567);
-    assert!(account.total() == Money::from_i128(123_4567))
+    account.available_funds = Money::from_i64(120_0000);
+    account.held_funds = Money::from_i64(3_4567);
+    assert!(account.total() == Money::from_i64(123_4567))
 }
 
 #[test]
 fn account_total_negative_available() {
     let client = 266;
     let mut account = Account::new(client);
-    account.available_funds = Money::from_i128(120_0000);
-    account.available_funds.0.set_sign_negative(true);
-    account.held_funds = Money::from_i128(360_0000);
-    assert!(account.total() == Money::from_i128(240_0000))
+    account.available_funds = Money::from_i64(120_0000);
+    account.available_funds.set_sign_negative(true);
+    account.held_funds = Money::from_i64(360_0000);
+    assert!(account.total() == Money::from_i64(240_0000))
 }
 
 #[test]
 fn duplicate_disputes_are_rejected() {
     let mut tx_history = tx_history::TxHistory::default();
-    let deposit_amount = Money::from_i128(123000_0000);
+    let deposit_amount = Money::from_i64(123000_0000);
     let client = 725;
     let deposit_id: TxId = 101;
     let mut account = Account::new(client);
@@ -371,7 +371,7 @@ fn duplicate_disputes_are_rejected() {
 #[test]
 fn chargebacks_dont_free_txid() {
     let mut tx_history = tx_history::TxHistory::default();
-    let deposit_amount = Money::from_i128(123000_0000);
+    let deposit_amount = Money::from_i64(123000_0000);
     let client = 725;
     let deposit_id: TxId = 101;
     let mut account = Account::new(client);
@@ -398,7 +398,7 @@ fn chargebacks_dont_free_txid() {
     // transaction id is still occupied, a second deposit cannot reuse that id
     let second_client = 2525;
     let mut second_account = Account::new(second_client);
-    let second_deposit_amount = Money::from_i128(444_0000);
+    let second_deposit_amount = Money::from_i64(444_0000);
     let second_deposit = Transaction::new(
         Action::new_deposit(second_deposit_amount),
         second_client,
