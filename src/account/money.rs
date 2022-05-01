@@ -1,9 +1,9 @@
 use std::{
     fmt::{Debug, Display},
     num::ParseIntError,
+    ops::{Add, AddAssign, Sub, SubAssign},
 };
 
-use derive_more::{Add, AddAssign, Sub, SubAssign};
 use serde::{de::Visitor, Deserialize, Serialize};
 
 type MoneyInner = i64;
@@ -11,7 +11,7 @@ type MoneyInner = i64;
 const ONE_MONEY: MoneyInner = 1_0000;
 
 /// `Money` is a numeric quantity with four decimal places.
-#[derive(Default, Clone, Copy, Add, AddAssign, Sub, SubAssign, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Money(MoneyInner);
 
 impl Money {
@@ -39,7 +39,7 @@ impl Money {
         }
     }
 
-    pub fn to_f64(&self) -> f64 {
+    pub fn to_f64(self) -> f64 {
         self.0 as f64 / ONE_MONEY as f64
     }
 }
@@ -78,7 +78,7 @@ impl<'de> Deserialize<'de> for Money {
             where
                 E: serde::de::Error,
             {
-                let (whole, fraction) = if let Some((whole, fraction_s)) = v.split_once(".") {
+                let (whole, fraction) = if let Some((whole, fraction_s)) = v.split_once('.') {
                     // fraction can't start with negative sign
                     if fraction_s.starts_with('-') {
                         return Err(E::custom(format!(
@@ -86,7 +86,7 @@ impl<'de> Deserialize<'de> for Money {
                             v
                         )));
                     }
-                    let mut fraction = if fraction_s == "" {
+                    let mut fraction = if fraction_s.is_empty() {
                         // "" is a valid fractional part
                         0
                     } else {
@@ -107,7 +107,7 @@ impl<'de> Deserialize<'de> for Money {
                     }
                     // "-" isn't a valid integer, but it is a valid whole portion of a decimal,
                     // but only if we have a fraction
-                    let whole = if (whole == "-" || whole == "") && fraction_s != "" {
+                    let whole = if (whole == "-" || whole.is_empty()) && !fraction_s.is_empty() {
                         0
                     } else {
                         whole.parse::<MoneyInner>().map_err(Self::parseint_error)?
@@ -134,6 +134,33 @@ impl Display for Money {
 impl Debug for Money {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("Money").field(&self.to_string()).finish()
+    }
+}
+
+// manually implemented arithmatic will always panic, even in release mode.
+// Better to crash the application than corrupt someone's account balance
+impl Add for Money {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Money(self.0.checked_add(rhs.0).unwrap())
+    }
+}
+impl Sub for Money {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Money(self.0.checked_sub(rhs.0).unwrap())
+    }
+}
+impl AddAssign for Money {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs;
+    }
+}
+impl SubAssign for Money {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = *self - rhs;
     }
 }
 

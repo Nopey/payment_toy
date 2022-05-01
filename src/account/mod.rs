@@ -13,38 +13,6 @@ pub use tx_history::TxHistory;
 /// `Client` is an [`Account`]'s unique identifier
 pub type Client = u16;
 
-/*
-/// `Money` is a numeric quantity with four decimal places.
-#[derive(
-    Default,
-    Clone,
-    Copy,
-    Display,
-    Debug,
-    Add,
-    AddAssign,
-    Sub,
-    SubAssign,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Serialize,
-    Deserialize,
-)]
-
-#[serde(transparent)]
-pub struct Money(#[serde(with = "rust_decimal::serde::str")] rust_decimal::Decimal);
-
-impl Money {
-    pub const ZERO: Money = Money(rust_decimal::Decimal::ZERO);
-
-    #[cfg(test)]
-    fn from_i128(num: i128) -> Self {
-        Money(rust_decimal::Decimal::from_i128_with_scale(num, 4))
-    }
-}*/
-
 /// `Account` is one's current balance and standing with the bank.
 pub struct Account {
     client: Client,
